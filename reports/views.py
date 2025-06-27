@@ -15,6 +15,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
 from io import BytesIO
 from django.utils.dateparse import parse_date
+from reports.pdf_report import generate_daily_report
 
 @csrf_exempt
 def save_data(request):
@@ -39,7 +40,10 @@ def save_data(request):
             intermediary=data["intermediary"],
             seller=seller_instance,
             date=data["date"],
-            notes=data["notes"]
+            notes=data["notes"],
+            passport=data["passport"],
+            phone=data["phone"],
+            status=data["status"]
         )
         
         return JsonResponse({"answer":sale.id}, status=200)
@@ -51,40 +55,19 @@ def generate_marine_report(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            business_id = data.get("business_id")  # O el nombre del campo que esperas
+            business = data.get("business")  # O el nombre del campo que esperas
+            time = data.get("time")
+            date = data.get("date")
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
         
-        sales = Sale.objects.filter(business_id=business_id)
+        business_instance = Business.objects.get(business=business)
+        sales = Sale.objects.filter(business_id=business_instance.id, time=time, date=date)
+        print(sales)
+        buffer = generate_daily_report(sales)
 
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=LETTER)
-        elements = []
-
-        # Encabezados de la tabla
-        data = [["Nombre", "Edad", "Ruta", "Hora"]]
-
-
-        for sale in sales:
-            data.append([sale.name, sale.age, sale.route, sale.time])
-        
-        table = Table(data)
-        style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ])
-        table.setStyle(style)
-
-        elements.append(table)
-        doc.build(elements)
-
-        buffer.seek(0)
-        response = HttpResponse(buffer, content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename="reporte_ventas.pdf"'
+        response = HttpResponse(buffer, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="reporte_diario.xlsx"'
         return response
     else:   
         return HttpResponse("Methodo invalido, solo POST requests", status=405)
@@ -113,12 +96,15 @@ def get_sells_data(request):
                 'ferry': sale.ferry,
                 'intermediary': sale.intermediary,
                 'date': sale.date.strftime('%Y-%m-%d'),
-                'seller': f"{sale.seller.first_name} {sale.seller.last_name}" if sale.seller else None
+                'seller': f"{sale.seller.first_name} {sale.seller.last_name}" if sale.seller else None,
+                'passport':sale.passport,
+                'phone':sale.phone,
+                'status':sale.status
             }
             for sale in Sale.objects.filter(
                 business_id=business_instance.id,
                 date__range=(start_date_obj, end_date_obj)
-            ).select_related('seller') 
+            ).exclude(ferry=business_instance.ferry).select_related('seller') 
         ]
         sales_list = list(data)
         return JsonResponse({"data": sales_list})
@@ -150,7 +136,10 @@ def get_sells_ferry(request):
                 'ferry': sale.ferry,
                 'intermediary': sale.intermediary,
                 'date': sale.date.strftime('%Y-%m-%d'),
-                'seller': f"{sale.seller.first_name} {sale.seller.last_name}" if sale.seller else None
+                'seller': f"{sale.seller.first_name} {sale.seller.last_name}" if sale.seller else None,
+                'passport':sale.passport,
+                'phone':sale.phone,
+                'status':sale.status
             }
             for sale in Sale.objects.filter(
                 business_id=business_instance.id,

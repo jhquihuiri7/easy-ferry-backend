@@ -34,4 +34,5 @@ urlpatterns = [
     path('get-notifications', business_notifications),
     path('get-coordinates', get_coordinates),
     path('save-coordinates', save_coordinates),
+    path('mark-as-read-notifications', mark_read_notification),
 ]

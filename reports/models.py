@@ -54,6 +54,11 @@ class Sale(models.Model):
     seller = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, related_name='sales')
     notes = models.CharField(max_length=200, default='')
     passport = models.CharField(max_length=50, default='')
+    phone = models.CharField(max_length=50, default='')
+    status = models.CharField(max_length=50, default='Residente')
+    payed = models.CharField(max_length=50, default='')
+    payment = models.CharField(max_length=50, default='')
+    mail = models.CharField(max_length=50, default='')
 
     class Meta:
         db_table = 'sales'

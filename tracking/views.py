@@ -1,21 +1,32 @@
 # views.py
-from django.http import JsonResponse, HttpResponseBadRequest
-from .models import Coordinates
+from django.http import JsonResponse
+from django.utils import timezone
+from datetime import timedelta
 from reports.models import Business
+from tracking.models import Coordinates
 
 def get_coordinates(request):
     if request.method != "GET":
         return JsonResponse({'error': 'Only GET requests are allowed.'}, status=405)
 
     business = request.GET.get('business')
-
     if not business:
-        return JsonResponse({'error': 'Missing business_id parameter.'}, status=400)
+        return JsonResponse({'error': 'Missing business parameter.'}, status=400)
 
-    business_instance = Business.objects.get(business=business)
+    try:
+        business_instance = Business.objects.get(business=business)
+    except Business.DoesNotExist:
+        return JsonResponse({'error': 'Business not found.'}, status=404)
 
-    coordinates = Coordinates.objects.filter(business=business_instance).order_by('-time')
-    
+    # Obtener el tiempo límite: ahora menos 3 horas
+    three_hours_ago = timezone.now() - timedelta(hours=3)
+
+    # Filtrar coordenadas por tiempo
+    coordinates = Coordinates.objects.filter(
+        business=business_instance,
+        time__gte=three_hours_ago
+    ).order_by('-time')
+
     data = [
         {
             "lat": c.lat,
@@ -24,7 +35,7 @@ def get_coordinates(request):
         }
         for c in coordinates
     ]
-    
+
     return JsonResponse(data, safe=False)
 
 def save_coordinates(request):

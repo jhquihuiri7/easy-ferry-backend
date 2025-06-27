@@ -6,7 +6,8 @@ class Notification(models.Model):
     id = models.AutoField(primary_key=True)
     business = models.ForeignKey(Business, on_delete=models.CASCADE)
     message = models.TextField()
-    date = models.DateTimeField(default=timezone.now,)
+    date = models.DateTimeField(default=timezone.now)
+    read = models.BooleanField(default=False)
     
     class Meta:
         managed = True
