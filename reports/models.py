@@ -56,7 +56,7 @@ class Sale(models.Model):
     passport = models.CharField(max_length=50, default='')
     phone = models.CharField(max_length=50, default='')
     status = models.CharField(max_length=50, default='Residente')
-    payed = models.CharField(max_length=50, default='')
+    payed = models.BooleanField(default=False)
     payment = models.CharField(max_length=50, default='')
     mail = models.CharField(max_length=50, default='')
 

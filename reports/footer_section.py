@@ -25,37 +25,48 @@ def footer_section(ws: Worksheet, cell_start: int):
     apply_font_style_text(ws, f"A{cell_start + 1}", "Declaración de responsabilidad: El Armador asume toda responsabilidad legal sobre los actos relacionados con la operación de la embarcación, incluido el registro de pasajeros. Asimismo, como persona responsable del registro de pasajeros DECLARO que la información detallada en el presente formulario es verídica en su totalidad, asimismo, conozco que puede estar sujeto al análisis que en derecho corresponda y que es de mi entera responsabilidad cualquier tipo de falsificación, destrucción, adulteración, modificación u omisión en la información proporcionada a las Autoridades competentes.")
     ws[f"A{cell_start + 1}"].alignment = Alignment(wrap_text=True)
     ws.merge_cells(f"A{cell_start + 1}:G{cell_start + 7}")
-
+    # Línea 2 - Nombre
     for col in ['H', 'L', 'P', 'T']:
         apply_font_style_subtitle(ws, f"{col}{cell_start + 1}", "Nombre:")
         set_cell_style_text(ws, f"{col}{cell_start + 1}", f"{chr(ord(col)+1)}{cell_start + 1}")  # Merge with next col
+    for col in ['J','N','R','V']:
+        ws.merge_cells(f"{col}{cell_start + 1}:{chr(ord(col)+1)}{cell_start + 1}")
 
     # Línea 3 - Cédula
     for col in ['H', 'L', 'P', 'T']:
         apply_font_style_subtitle(ws, f"{col}{cell_start + 2}", "Cédula:")
         set_cell_style_text(ws, f"{col}{cell_start + 2}", f"{chr(ord(col)+1)}{cell_start + 2}")
+    for col in ['J','N','R','V']:
+        ws.merge_cells(f"{col}{cell_start + 2}:{chr(ord(col)+1)}{cell_start + 2}")
 
     # Línea 4 - Cargo
     for col in ['H', 'L', 'P', 'T']:
         apply_font_style_subtitle(ws, f"{col}{cell_start + 3}", "Cargo:")
         set_cell_style_text(ws, f"{col}{cell_start + 3}", f"{chr(ord(col)+1)}{cell_start + 3}")
+    for col in ['J','N','R','V']:
+        ws.merge_cells(f"{col}{cell_start + 3}:{chr(ord(col)+1)}{cell_start + 3}")
 
     # Línea 5 - Fecha
     for col in ['H', 'L', 'P', 'T']:
         apply_font_style_subtitle(ws, f"{col}{cell_start + 4}", "Fecha:")
         set_cell_style_text(ws, f"{col}{cell_start + 4}", f"{chr(ord(col)+1)}{cell_start + 4}")
+    for col in ['J','N','R','V']:
+        ws.merge_cells(f"{col}{cell_start + 4}:{chr(ord(col)+1)}{cell_start + 4}")
 
     # Línea 6 - Teléfono
     for col in ['H', 'L', 'P', 'T']:
         apply_font_style_subtitle(ws, f"{col}{cell_start + 5}", "Teléfono:")
         set_cell_style_text(ws, f"{col}{cell_start + 5}", f"{chr(ord(col)+1)}{cell_start + 5}")
+    for col in ['J','N','R','V']:
+        ws.merge_cells(f"{col}{cell_start + 5}:{chr(ord(col)+1)}{cell_start + 5}")
 
     # Línea 7 y 8 - Firma y sello (merge hacia abajo)
     for col in ['H', 'L', 'P', 'T']:
         apply_font_style_subtitle(ws, f"{col}{cell_start + 6}", "Firma y sello:")
         ws.merge_cells(f"{col}{cell_start + 6}:{chr(ord(col)+1)}{cell_start + 7}")
         set_cell_style_text(ws, f"{col}{cell_start + 6}", f"{chr(ord(col)+1)}{cell_start + 7}")
-
+    for col in ['J','N','R','V']:
+        ws.merge_cells(f"{col}{cell_start + 6}:{chr(ord(col)+1)}{cell_start + 7}")
 
 from openpyxl.styles import Font, Alignment
 from openpyxl.styles.borders import Border, Side
