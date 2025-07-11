@@ -7,6 +7,8 @@ from openpyxl.styles import Font, Alignment, PatternFill
 from reports.content_section import content_section
 from reports.footer_section import footer_section
 from openpyxl.styles.borders import Border, Side
+from authentication.models import Crew, Owner
+from reports.models import Business
 
 def apply_borders(ws):
     thin = Side(border_style="thin", color="000000")
@@ -16,7 +18,7 @@ def apply_borders(ws):
         for cell in row:
             cell.border = border
 
-def generate_daily_report(sales):
+def generate_daily_report(sales, date, time):
     buffer = BytesIO()
 
     # Crear archivo y hoja
@@ -61,7 +63,7 @@ def generate_daily_report(sales):
         ws.row_dimensions[i].height = 12
     ws.row_dimensions[2].height = 24
 
-    information_section(ws, date="2024-06-25", time_period="Am")
+    information_section(ws, date, time)
     content_section(ws, sales)
     footer_section(ws, 11+len(sales))
 
@@ -108,16 +110,23 @@ def set_cell_style_text(ws, start_cell, end_cell):
               alignment=Alignment(horizontal="left", vertical="center"))
 
 def information_section(ws, date, time_period):
-    if time_period == "Am":
-        p_zarpe = "Pto. Baq. Moreno"
-        p_arribo = "Pto. Ayora"
-        h_zarpe = "07:00"
-        h_arribo = "09:00"
-    else:
-        p_zarpe = "Pto. Ayora"
-        p_arribo = "Pto. Baq. Moreno"
-        h_zarpe = "15:00"
-        h_arribo = "17:00"
+
+    # Get the crew instance
+    business_instance = Business.objects.get(business="Gaviota")
+    crew = Crew.objects.get(business=business_instance.id)
+    owner = Owner.objects.get(business=business_instance.id)
+
+    if business_instance.business == "Gaviota" or business_instance.business == "Viamar":
+        if time_period == "am":
+            p_zarpe = "Pto. Baq. Moreno"
+            p_arribo = "Pto. Ayora"
+            h_zarpe = "07:00"
+            h_arribo = "09:00"
+        else:
+            p_zarpe = "Pto. Ayora"
+            p_arribo = "Pto. Baq. Moreno"
+            h_zarpe = "15:00"
+            h_arribo = "17:00"
 
     # Línea 1
     apply_font_style_subtitle(ws, "A1", "I. INFORMACIÓN DEL VIAJE")
@@ -127,7 +136,7 @@ def information_section(ws, date, time_period):
 
     # Línea 2
     apply_font_style_subtitle(ws, "A2", "Fecha:")
-    apply_font_style_text(ws, "C2", date[:10])
+    apply_font_style_text(ws, "C2", date)
     apply_font_style_subtitle(ws, "E2", "Puerto zarpe:")
     apply_font_style_text(ws, "H2", p_zarpe)
     apply_font_style_subtitle(ws, "K2", "Hora zarpe:")
@@ -153,18 +162,18 @@ def information_section(ws, date, time_period):
     set_cell_style_text(ws, "N3", "O3")
 
     apply_font_style_subtitle(ws, "P2", "Nombre:")
-    apply_font_style_text(ws, "R2", "Gaviota")
+    apply_font_style_text(ws, "R2", business_instance.ferry)
     apply_font_style_subtitle(ws, "T2", "Cap. Tripulantes:")
-    apply_font_style_text(ws, "W2", "3")
+    apply_font_style_text(ws, "W2", crew.crew_capacity)
     set_cell_style_text(ws, "P2", "Q2")
     set_cell_style_text(ws, "R2", "S2")
     set_cell_style_text(ws, "T2", "V2")
     set_cell_style_text(ws, "W2", "W2")
 
     apply_font_style_subtitle(ws, "P3", "Matrícula:")
-    apply_font_style_text(ws, "R3", "TN-01-01070")
+    apply_font_style_text(ws, "R3", crew.ferry_registration)
     apply_font_style_subtitle(ws, "T3", "Cap. Pasajeros:")
-    apply_font_style_text(ws, "W3", "38")
+    apply_font_style_text(ws, "W3", crew.passenger_capacity)
     set_cell_style_text(ws, "P3", "Q3")
     set_cell_style_text(ws, "R3", "S3")
     set_cell_style_text(ws, "T3", "V3")
@@ -180,13 +189,13 @@ def information_section(ws, date, time_period):
 
     # Línea 5
     apply_font_style_subtitle(ws, "A5", "Nombre:")
-    apply_font_style_text(ws, "C5", "Darwin Ernesto Freire Escarabay")
+    apply_font_style_text(ws, "C5", owner.name)
     apply_font_style_subtitle(ws, "H5", "Nombre:")
-    apply_font_style_text(ws, "J5", "Carlos Zambrano Macías")
+    apply_font_style_text(ws, "J5", crew.responsible_name)
     apply_font_style_subtitle(ws, "P5", "Capitán:")
-    apply_font_style_text(ws, "R5", "Carlos Zambrano")
+    apply_font_style_text(ws, "R5", crew.captain_name)
     apply_font_style_subtitle(ws, "T5", "Cédula:")
-    apply_font_style_text(ws, "V5", "2000079711")
+    apply_font_style_text(ws, "V5", crew.captain_passport)
     set_cell_style_text(ws, "A5", "B5")
     set_cell_style_text(ws, "C5", "G5")
     set_cell_style_text(ws, "H5", "I5")
@@ -198,17 +207,17 @@ def information_section(ws, date, time_period):
 
     # Línea 6
     apply_font_style_subtitle(ws, "A6", "RUC")
-    apply_font_style_text(ws, "C6", "2000026241001")
+    apply_font_style_text(ws, "C6", owner.ruc)
     apply_font_style_subtitle(ws, "E6", "Teléf:")
-    apply_font_style_text(ws, "F6", "0981915924")
+    apply_font_style_text(ws, "F6", owner.phone)
     apply_font_style_subtitle(ws, "H6", "Cédula:")
-    apply_font_style_text(ws, "J6", "2000079711")
+    apply_font_style_text(ws, "J6", crew.responsible_passport)
     apply_font_style_subtitle(ws, "L6", "Teléfono:")
-    apply_font_style_text(ws, "N6", "0969348203")
+    apply_font_style_text(ws, "N6", crew.responsible_phone)
     apply_font_style_subtitle(ws, "P6", "Marinero 1:")
-    apply_font_style_text(ws, "R6", "Jeferson Guerrero")
+    apply_font_style_text(ws, "R6", crew.sailor1_name)
     apply_font_style_subtitle(ws, "T6", "Cédula:")
-    apply_font_style_text(ws, "V6", "2050000864")
+    apply_font_style_text(ws, "V6", crew.sailor1_passport)
     set_cell_style_text(ws, "A6", "B6")
     set_cell_style_text(ws, "C6", "D6")
     set_cell_style_text(ws, "E6", "E6")
@@ -224,9 +233,9 @@ def information_section(ws, date, time_period):
 
     # Línea 7
     apply_font_style_subtitle(ws, "A7", "e-mail:")
-    apply_font_style_text(ws, "C7", "gaviota.ferry@gmail.com")
+    apply_font_style_text(ws, "C7", owner.email)
     apply_font_style_subtitle(ws, "H7", "e-mail:")
-    apply_font_style_text(ws, "J7", "")
+    apply_font_style_text(ws, "J7", crew.responsible_email)
     apply_font_style_subtitle(ws, "P7", "")
     apply_font_style_text(ws, "R7", "")
     apply_font_style_subtitle(ws, "T7", "")

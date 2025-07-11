@@ -20,6 +20,7 @@ from reports.views import *
 from authentication.views import *
 from account.views import *
 from tracking.views import *
+from registration.views import *
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,7 +28,12 @@ urlpatterns = [
     path('marine-report', generate_marine_report),
     path('get-sales', get_sells_data),
     path('get-sales-ferry', get_sells_ferry),
+    path('get-owner', get_owner),
+    path('get-crew', get_crew),
+    path('update-owner', update_owner),
+    path('update-crew', update_crew),
     path('login', login),
+    path('refresh', refresh_token),
     path('register', register_user),
     path('delete-sales', delete_sales),
     path('update-sale', update_sale),
@@ -35,4 +41,6 @@ urlpatterns = [
     path('get-coordinates', get_coordinates),
     path('save-coordinates', save_coordinates),
     path('mark-as-read-notifications', mark_read_notification),
+    path("registrar-token", request_registration_token),
+    path("validar-token", validate_registration_token),
 ]

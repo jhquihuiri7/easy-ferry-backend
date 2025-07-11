@@ -37,7 +37,7 @@ def content_section(ws, reserves):
     set_merge_style(ws, "H9", "J10")
     apply_font_style_subtitle("K9", "Nacionalidad", ws)
     set_merge_style(ws, "K9", "M10")
-    apply_font_style_subtitle("N9", "Fecha de Nacimiento", ws)
+    apply_font_style_subtitle("N9", "Edad", ws)
     set_merge_style(ws, "N9", "O10")
     apply_font_style_subtitle("P9", "Estatus", ws)
     set_merge_style(ws, "P9", "R9")
