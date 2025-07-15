@@ -43,4 +43,7 @@ urlpatterns = [
     path('mark-as-read-notifications', mark_read_notification),
     path("registrar-token", request_registration_token),
     path("validar-token", validate_registration_token),
+    path("use-token", use_token),
+    path("get-token-mail", get_token_mail),
+    path("get-all-sales", get_sales_by_business)
 ]

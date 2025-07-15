@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from reports.models import Credential, User, Business
 from authentication.models import Owner, Crew
+from account.models import Notification
 
 # views.py
 import jwt
@@ -86,6 +87,11 @@ def register_user(request):
         user=user,
         email=email,
         password=make_password(password)
+    )
+
+    Notification.objects.create(
+        message="Bienvenido a Easy Ferry, el mejor sistema para automatizar los procesos de tu negocio. ",
+        business=business_instance
     )
     
     return JsonResponse({'message': 'Usuario creado exitosamente', 'user_id': user.id}, status=201)

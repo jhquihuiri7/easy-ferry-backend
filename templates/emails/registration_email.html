@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Bienvenido</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      background-color: #ffffff;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      color: #333333;
+    }
+    p {
+      color: #555555;
+      line-height: 1.6;
+      text-align: left;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 20px;
+      margin-top: 20px;
+      background-color: #000000;
+      color: white !important;
+      text-decoration: none !important;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    .footer {
+      margin-top: 30px;
+      font-size: 12px;
+      color: #999999;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>¡Bienvenido!</h1>
+    <p>Hola,</p>
+    <p>Gracias por unirte a nuestra comunidad. Estamos emocionados de tenerte con nosotros.</p>
+    <p>Para completar tu registro, por favor haz clic en el siguiente botón:</p>
+    <a href="{{ verification_url }}"  class="button">Completar Registro</a>
+    <p>Si tienes alguna pregunta, no dudes en responder a este correo.</p>
+    <p>Saludos,<br>El equipo de Soporte</p>
+    <div class="footer">
+      © 2025 Easy Ferry. Todos los derechos reservados.
+    </div>
+  </div>
+</body>
+</html>

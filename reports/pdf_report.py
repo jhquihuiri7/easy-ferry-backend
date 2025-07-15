@@ -18,7 +18,7 @@ def apply_borders(ws):
         for cell in row:
             cell.border = border
 
-def generate_daily_report(sales, date, time):
+def generate_daily_report(sales, date, time, business_instance):
     buffer = BytesIO()
 
     # Crear archivo y hoja
@@ -63,7 +63,7 @@ def generate_daily_report(sales, date, time):
         ws.row_dimensions[i].height = 12
     ws.row_dimensions[2].height = 24
 
-    information_section(ws, date, time)
+    information_section(ws, date, time, business_instance)
     content_section(ws, sales)
     footer_section(ws, 11+len(sales))
 
@@ -109,10 +109,9 @@ def set_cell_style_text(ws, start_cell, end_cell):
               font=Font(name="Arial", size=8),
               alignment=Alignment(horizontal="left", vertical="center"))
 
-def information_section(ws, date, time_period):
+def information_section(ws, date, time_period, business_instance):
 
     # Get the crew instance
-    business_instance = Business.objects.get(business="Gaviota")
     crew = Crew.objects.get(business=business_instance.id)
     owner = Owner.objects.get(business=business_instance.id)
 
@@ -236,10 +235,10 @@ def information_section(ws, date, time_period):
     apply_font_style_text(ws, "C7", owner.email)
     apply_font_style_subtitle(ws, "H7", "e-mail:")
     apply_font_style_text(ws, "J7", crew.responsible_email)
-    apply_font_style_subtitle(ws, "P7", "")
-    apply_font_style_text(ws, "R7", "")
-    apply_font_style_subtitle(ws, "T7", "")
-    apply_font_style_text(ws, "V7", "")
+    apply_font_style_subtitle(ws, "P7", "Marinero 2:")
+    apply_font_style_text(ws, "R7", crew.sailor2_name)
+    apply_font_style_subtitle(ws, "T7", "Cédula:")
+    apply_font_style_text(ws, "V7", crew.sailor2_passport)
     set_cell_style_text(ws, "A7", "B7")
     set_cell_style_text(ws, "C7", "G7")
     set_cell_style_text(ws, "H7", "I7")

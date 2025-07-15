@@ -1,24 +1,21 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from reports.models import Sale, User, Business, Credential
+from reports.models import Sale, Business, Credential
 from authentication.models import Owner, Crew
-from django.db.models import F, Value
-from django.db.models.functions import Concat
 from django.core.exceptions import ObjectDoesNotExist
 
-#from . import utils
-import uuid
+import io
 import json
-
+import csv
+import json
+from openpyxl import Workbook
+from django.http import JsonResponse, HttpResponse
 
 from reportlab.lib.pagesizes import LETTER
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
-from reportlab.lib import colors
-from io import BytesIO
 from django.utils.dateparse import parse_date
 from reports.pdf_report import generate_daily_report
-from datetime import datetime
+
 
 @csrf_exempt
 def save_data(request):
@@ -30,8 +27,8 @@ def save_data(request):
             return JsonResponse({"error": "Invalid JSON"}, status=400)
         
         try:
-            user_instance = Credential.objects.get(email=data["seller_email"])
-            seller_instance = User.objects.get(id=user_instance.id)
+            seller_instance = Credential.objects.get(email=data["seller_email"])
+            user_instance = seller_instance.user
             business_instance = Business.objects.get(business=data["business"])
             
             sale = Sale.objects.create(
@@ -43,7 +40,7 @@ def save_data(request):
                 time=data["time"],
                 ferry=data["ferry"],
                 intermediary=data["intermediary"],
-                seller=seller_instance,
+                seller=user_instance,
                 date=data["date"],
                 notes=data["notes"],
                 passport=data["passport"],
@@ -69,8 +66,8 @@ def save_data(request):
                 
             try:
                 sale = Sale.objects.get(id=data["id"])
-                user_instance = Credential.objects.get(email=data["seller_email"])
-                seller_instance = User.objects.get(id=user_instance.id)
+                seller_instance = Credential.objects.get(email=data["seller_email"])
+                user_instance = seller_instance.user
                 business_instance = Business.objects.get(business=data["business"])
                 
                 # Actualizar todos los campos
@@ -82,7 +79,7 @@ def save_data(request):
                 sale.time = data["time"]
                 sale.ferry = data["ferry"]
                 sale.intermediary = data["intermediary"]
-                sale.seller = seller_instance
+                sale.seller = user_instance
                 sale.date = data["date"]
                 sale.notes = data["notes"]
                 sale.passport = data["passport"]
@@ -122,9 +119,8 @@ def generate_marine_report(request):
         business_instance = Business.objects.get(business=business)
         sales = Sale.objects.filter(business_id=business_instance.id, time=time, date=date).order_by('created_at')
 
-        buffer = generate_daily_report(sales, date, time)
-        current_time = datetime.now().strftime("%H-%M")
-        filename = f"{business} {time} {date} {current_time}.xlsx"
+        buffer = generate_daily_report(sales, date, time, business_instance)
+        filename = f"{business} {time} {date}.xlsx"
         filename = (
             filename.strip()
             .replace('\n', '')
@@ -198,6 +194,7 @@ def get_sells_ferry(request):
         end_date_obj = parse_date(end_date) if end_date else None
 
         business_instance = Business.objects.get(business=business)
+        print(business_instance.ferry)
         data = [
             {
                 'id': sale.id,
@@ -540,4 +537,113 @@ def update_crew(request):
         return JsonResponse({
             'status': 'error',
             'message': str(e)
+        }, status=500)
+    
+def get_sales_by_business(request):
+    # 1. Validar método HTTP
+    if request.method != 'GET':
+        return JsonResponse({
+            'success': False,
+            'message': 'Only GET method is allowed'
+        }, status=405)
+
+    # 2. Obtener parámetros
+    business_name = request.GET.get('business')
+    export_format = request.GET.get('format', 'xlsx').lower()  # default a xlsx
+
+    if not business_name:
+        return JsonResponse({
+            'success': False,
+            'message': 'URL parameter "business" is required (e.g. ?business=Gaviota)'
+        }, status=400)
+
+    if export_format not in ['xlsx', 'csv', 'json']:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid format. Use one of: xlsx, csv, json'
+        }, status=400)
+
+    try:
+        # 3. Consultar base de datos
+        business = Business.objects.get(business__iexact=business_name)
+        sales = Sale.objects.filter(business_id=business).select_related('seller', 'business_id')
+
+        # 4. Estructura común de datos
+        data = []
+        headers = [
+            'Negocio', 'Nombre', 'Edad', 'Precio', 'Ruta',
+            'Tiempo', 'Ferry', 'Intermediario', 'Fecha',
+            'Vendedor', 'Notas', 'Pasaporte', 'Teléfono',
+            'Estado', 'Pagado', 'Método de Pago', 'Email'
+        ]
+
+        for sale in sales:
+            row = [
+                sale.business_id.business,
+                sale.name,
+                sale.age,
+                sale.price,
+                sale.route,
+                sale.time,
+                sale.ferry,
+                sale.intermediary,
+                sale.date.isoformat() if sale.date else None,
+                f"{sale.seller.first_name} {sale.seller.last_name}" if sale.seller else None,
+                sale.notes,
+                sale.passport,
+                sale.phone,
+                sale.status,
+                sale.payed,
+                sale.payment,
+                sale.mail,
+            ]
+            data.append(row)
+
+        # 5. Generar respuesta según formato
+        if export_format == 'xlsx':
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Ventas"
+            ws.append(headers)
+            for row in data:
+                ws.append(row)
+
+            buffer = io.BytesIO()
+            wb.save(buffer)
+            buffer.seek(0)
+
+            response = HttpResponse(
+                buffer.getvalue(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = f'attachment; filename=sales-{business_name}.xlsx'
+            return response
+
+        elif export_format == 'csv':
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow(headers)
+            writer.writerows(data)
+
+            response = HttpResponse(buffer.getvalue(), content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename=sales-{business_name}.csv'
+            return response
+
+        elif export_format == 'json':
+            json_data = [
+                dict(zip(headers, row))
+                for row in data
+            ]
+            return JsonResponse(json_data, safe=False)
+
+    except Business.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': f'Business "{business_name}" not found'
+        }, status=404)
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Server error: {str(e)}'
         }, status=500)
