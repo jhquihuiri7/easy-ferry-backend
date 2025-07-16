@@ -25,6 +25,7 @@ from registration.views import *
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('sales', save_data),
+    path('sales-multiple', save_multiple_data),
     path('marine-report', generate_marine_report),
     path('get-sales', get_sells_data),
     path('get-sales-ferry', get_sells_ferry),
@@ -45,5 +46,7 @@ urlpatterns = [
     path("validar-token", validate_registration_token),
     path("use-token", use_token),
     path("get-token-mail", get_token_mail),
-    path("get-all-sales", get_sales_by_business)
+    path("get-all-sales", get_sales_by_business),
+    path("mark-as-paid", mark_as_paid),
+    path("get-ferry", get_ferry)
 ]

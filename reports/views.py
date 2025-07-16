@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from reports.models import Sale, Business, Credential
+from reports.models import Sale, Business, Credential, Ferry
 from authentication.models import Owner, Crew
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -47,7 +47,8 @@ def save_data(request):
                 phone=data["phone"],
                 status=data["status"],
                 payed=data["payed"],
-                payment=data["payment"]
+                payment=data["payment"],
+                mail=data["mail"]
             )
             
             return JsonResponse({"answer": sale.id}, status=201)  # 201 para creación exitosa
@@ -87,6 +88,7 @@ def save_data(request):
                 sale.status = data["status"]
                 sale.payed = data["payed"]
                 sale.payment = data["payment"]
+                sale.mail = data["mail"]
                 
                 sale.save()
                 
@@ -104,6 +106,69 @@ def save_data(request):
 
     else:   
         return HttpResponse("Método inválido, solo POST o PUT requests", status=405)
+
+@csrf_exempt
+def save_multiple_data(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Método inválido, solo POST requests"}, status=405)
+    
+    try:
+        data_list = json.loads(request.body)
+        if not isinstance(data_list, list):
+            return JsonResponse({"error": "Se esperaba una lista de ventas"}, status=400)
+        
+        created_ids = []
+        errors = []
+        
+        for index, data in enumerate(data_list):
+            try:
+                seller_instance = Credential.objects.get(email=data["seller_email"])
+                user_instance = seller_instance.user
+                business_instance = Business.objects.get(business=data["business"])
+                
+                sale = Sale.objects.create(
+                    business_id=business_instance,
+                    name=data["name"],
+                    age=data["age"],
+                    price=data["price"],
+                    route=data["route"],
+                    time=data["time"],
+                    ferry=data["ferry"],
+                    intermediary=data["intermediary"],
+                    seller=user_instance,
+                    date=data["date"],
+                    notes=data["notes"],
+                    passport=data["passport"],
+                    phone=data["phone"],
+                    status=data["status"],
+                    payed=data["payed"],
+                    payment=data["payment"],
+                    mail=data["mail"]
+                )
+                created_ids.append(sale.id)
+                
+            except KeyError as e:
+                errors.append(f"Elemento {index}: Falta el campo requerido {str(e)}")
+            except ObjectDoesNotExist as e:
+                errors.append(f"Elemento {index}: {str(e)}")
+            except Exception as e:
+                errors.append(f"Elemento {index}: Error al crear - {str(e)}")
+        
+        if errors:
+            # Si hubo errores en alguno, pero otros se crearon correctamente
+            response_data = {
+                "created_ids": created_ids,
+                "errors": errors,
+                "message": "Algunas ventas no se pudieron crear"
+            }
+            return JsonResponse(response_data, status=207)  # 207 Multi-Status
+            
+        return JsonResponse({"created_ids": created_ids}, status=201)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 @csrf_exempt
 def generate_marine_report(request):
@@ -167,7 +232,8 @@ def get_sells_data(request):
                 'status':sale.status,
                 'notes':sale.notes,
                 'payed':"Si" if sale.payed else "No",
-                'payment':sale.payment
+                'payment':sale.payment,
+                'mail':sale.mail
             }
             for sale in Sale.objects.filter(
                 business_id=business_instance.id,
@@ -212,7 +278,8 @@ def get_sells_ferry(request):
                 'status':sale.status,
                 'notes':sale.notes,
                 'payed':"Si" if sale.payed else "No",
-                'payment':sale.payment
+                'payment':sale.payment,
+                'mail':sale.mail
             }
             for sale in Sale.objects.filter(
                 business_id=business_instance.id,
@@ -316,8 +383,6 @@ def get_owner(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
-
-import json
 
 @csrf_exempt
 def update_owner(request):
@@ -538,7 +603,8 @@ def update_crew(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
-    
+
+@csrf_exempt    
 def get_sales_by_business(request):
     # 1. Validar método HTTP
     if request.method != 'GET':
@@ -647,3 +713,54 @@ def get_sales_by_business(request):
             'success': False,
             'message': f'Server error: {str(e)}'
         }, status=500)
+
+@csrf_exempt
+def mark_as_paid(request):
+    if request.method != "POST":  # Podría ser PUT/PATCH si prefieres
+        return HttpResponse("Método inválido, solo POST requests", status=405)
+    
+    try:
+        data = json.loads(request.body)
+        ids = data.get("ids", [])
+        
+        # Validación de IDs
+        if not isinstance(ids, list) or not all(isinstance(i, int) for i in ids):
+            return JsonResponse(
+                {"error": "Formato inválido. 'ids' debe ser una lista de enteros."},
+                status=400
+            )
+        
+        # Actualización masiva
+        updated_count = Sale.objects.filter(id__in=ids).update(payed=True)
+        
+        return JsonResponse({
+            "updated_count": updated_count,
+            "message": f"Se marcaron {updated_count} venta(s) como pagadas."
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "JSON inválido"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def get_ferry(request):
+    if request.method != "GET":
+        return JsonResponse({"error": "Solo se permiten peticiones GET"}, status=405)
+
+    business_name = request.GET.get('business')
+    if not business_name:
+        return JsonResponse({"error": "El parámetro 'business' es requerido"}, status=400)
+
+    try:
+        # Busca la instancia del negocio por su nombre (insensible a mayúsculas/minúsculas).
+        business = Business.objects.get(business__iexact=business_name)
+        # Usando el related_name "ferries", obtenemos los ferris asociados.
+        # .values() optimiza la consulta para traer solo los datos que necesitamos.
+        ferries = business.ferries.all().values('id', 'ferry_name')
+        # Convierte el QuerySet a una lista y lo retorna como JSON.
+        return JsonResponse(list(ferries), safe=False)
+    except Business.DoesNotExist:
+        return JsonResponse({"error": f"El negocio '{business_name}' no fue encontrado"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

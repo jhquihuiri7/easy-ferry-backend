@@ -13,6 +13,17 @@ class Business(models.Model):
     def __str__(self):
         return self.business
     
+class Ferry(models.Model):
+    ferry_name = models.CharField(max_length=255)
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="ferries")
+
+    class Meta:
+        db_table = 'ferry'
+        managed = True
+    
+    def __str__(self):
+        return self.ferry_name
+    
 class User(models.Model):
     id = models.AutoField(primary_key=True)
     created_at = models.DateTimeField(auto_now_add=True)
