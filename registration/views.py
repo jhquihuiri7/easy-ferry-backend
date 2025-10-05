@@ -7,6 +7,7 @@ from django.utils.decorators import method_decorator
 from django.conf import settings
 import json
 from django.utils import timezone
+from reports.models import Business
 
 from registration.models import RegistrationToken
 
@@ -26,6 +27,7 @@ def request_registration_token(request):
         return JsonResponse({"error": "Email and Business are required."}, status=400)
 
     # Elimina tokens anteriores del mismo email (opcional)
+    
     RegistrationToken.objects.filter(email=email).delete()
 
     # Crea un nuevo token
@@ -72,8 +74,9 @@ def validate_registration_token(request):
     if token_obj.expires_at < timezone.now():
         return JsonResponse({"valid": False, "message": "Token has expired."}, status=400)
 
-    # ✅ Token is valid
-    return JsonResponse({"valid": True, "email": token_obj.email, "business": token_obj.business})
+    business = Business.objects.get(business=token_obj.business)  # Verifica que el negocio exista
+
+    return JsonResponse({"valid": True, "email": token_obj.email, "business": token_obj.business, "business_id": business.id})
 
 
 from django.http import JsonResponse
