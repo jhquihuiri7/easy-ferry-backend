@@ -18,17 +18,18 @@ def request_registration_token(request):
     try:
         data = json.loads(request.body)
         email = data.get("email")
+        business = data.get("business")
     except Exception:
         return JsonResponse({"error": "Invalid JSON."}, status=400)
 
-    if not email:
-        return JsonResponse({"error": "Email is required."}, status=400)
+    if not email or not business:
+        return JsonResponse({"error": "Email and Business are required."}, status=400)
 
     # Elimina tokens anteriores del mismo email (opcional)
     RegistrationToken.objects.filter(email=email).delete()
 
     # Crea un nuevo token
-    token_obj = RegistrationToken.objects.create(email=email)
+    token_obj = RegistrationToken.objects.create(email=email, business=business)
 
     # Construye el link de verificación
     verification_url = f"https://easy-ferry.vercel.app/register?token={token_obj.token}"
@@ -72,7 +73,7 @@ def validate_registration_token(request):
         return JsonResponse({"valid": False, "message": "Token has expired."}, status=400)
 
     # ✅ Token is valid
-    return JsonResponse({"valid": True, "email": token_obj.email})
+    return JsonResponse({"valid": True, "email": token_obj.email, "business": token_obj.business})
 
 
 from django.http import JsonResponse

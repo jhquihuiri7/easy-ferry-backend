@@ -6,6 +6,7 @@ from datetime import timedelta
 class RegistrationToken(models.Model):
     id = models.AutoField(primary_key=True)
     email = models.EmailField()
+    business = models.CharField(max_length=255, default="")
     token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
